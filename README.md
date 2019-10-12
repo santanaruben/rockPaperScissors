@@ -1,6 +1,6 @@
 # RockPaperScissors Project
 
-RockPaperScissors aplication for ethereum - Project 3 - Ethereum Developer Course - B9lab Academy
+RockPaperScissors application for ethereum - Project 3 - Ethereum Developer Course - B9lab Academy
 
 ## What:
 
