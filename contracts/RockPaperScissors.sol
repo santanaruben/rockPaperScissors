@@ -5,16 +5,19 @@ import "./Killable.sol";
 
 contract RockPaperScissors is Killable{
 
-    event LogPlayerOneMove(bytes32 indexed moveHashed, address indexed playerOne, address playerTwo, uint bet, uint blockLimit);
-    event LogPlayerTwoMove(bytes32 indexed moveHashed, uint move, uint amount, uint blockLimit);
-    event LogShowMoveOne(bytes32 indexed moveHashed, uint move);
-    event LogWinner(bytes32 indexed moveHashed, address indexed winner, address indexed loser, uint bet);
-    event LogDraw(bytes32 indexed moveHashed, address indexed playerOne, address indexed playerTwo, uint bet);
+    event LogPlayerOneMove(bytes32 indexed hash, address indexed playerOne, address playerTwo, uint bet, uint blockLimit);
+    event LogPlayerTwoMove(bytes32 indexed hash, Move move, uint amount, uint blockLimit);
+    event LogShowMoveOne(bytes32 indexed hash, Move move);
+    event LogWinner(bytes32 indexed hash, address indexed winner, address indexed loser, uint bet);
+    event LogDraw(bytes32 indexed hash, address indexed playerOne, address indexed playerTwo, uint bet);
+    event LogClaimNoGame(bytes32 indexed hash);
+    event LogClaimMoveOneNotShown(bytes32 indexed hash);
     event LogWithdrawn(uint amount, address indexed account);
 
     using SafeMath for uint256;
 
-    uint constant maxBlockDaysLimit = 86400 / 15;   // One day of blocks limit
+    // uint constant maxBlockDaysLimit = 86400 / 15;   // One day of blocks limit
+    uint constant maxBlocksLimit = 10;
 
     enum Move   {   noMove,     //0
                     rock,       //1
@@ -45,115 +48,97 @@ contract RockPaperScissors is Killable{
     }
 
     //  Create the hash with the moveOne and a security password.
-    function hashIt(bytes32 password, uint move)
+    function hashIt(bytes32 password, Move move)
         public view returns(bytes32 hash) 
     {
-        require((1 <= move) && (move <= 3));
+        require(move != Move.noMove);
         return keccak256(abi.encodePacked(password, move, msg.sender, address(this)));
     }
 
     //  Returns the winner move.
-    function winner(uint moveOne, uint moveTwo)
+    function winner(Move moveOne, Move moveTwo)
         public pure
         returns (Winner)
     {
-        require(((1 <= moveOne) && (moveOne <= 3)) && ((1 <= moveTwo) && (moveTwo <= 3)));
+        require(moveOne != Move.noMove || moveTwo != Move.noMove);
         //same result (range of 3) = same winner. 0=Draw, 1=PlayerOne, 2=PlayerTwo.
-        uint result = ((3 + moveOne) - moveTwo) % 3;    
-        if (result == 1)
-            return Winner.playerOne;
-        else if (result == 2)
-            return Winner.playerTwo;
-        else 
-            return Winner.draw;
-        
+        uint result = (3 + uint(moveOne) - uint(moveTwo)) % 3;    
+        if (result == 1) return Winner.playerOne;
+        else if (result == 2) return Winner.playerTwo;
+        else return Winner.draw;
     }
 
     //  Move from player one.
-    function playerOneMove(bytes32 moveHashed, address playerTwo)
+    function playerOneMove(bytes32 hash, address playerTwo)
         public payable
         whenRunning whenAlive
     {
         require(playerTwo != address(0));
-        Game storage thisGame = games[moveHashed];
+        Game storage thisGame = games[hash];
         require(thisGame.playerOne == address(0));
         thisGame.playerOne = msg.sender;
         thisGame.playerTwo = playerTwo;
         thisGame.bet = msg.value;
-        uint blockLimit = block.number.add(maxBlockDaysLimit);  //One day limit to play
+        uint blockLimit = block.number.add(maxBlocksLimit);  //One day limit to play
         thisGame.blockLimit = blockLimit;
-        emit LogPlayerOneMove(moveHashed, msg.sender, playerTwo, msg.value, blockLimit);
+        emit LogPlayerOneMove(hash, msg.sender, playerTwo, msg.value, blockLimit);
     }
 
     //  Move from player two.
-    function playerTwoMove(bytes32 moveHashed, uint move)
+    function playerTwoMove(bytes32 hash, Move move)
         public payable
         whenRunning whenAlive
     {
-        require(move >= 1 && move <= 3);
-        Game storage thisGame = games[moveHashed];
+        require(move != Move.noMove);
+        Game storage thisGame = games[hash];
         require(thisGame.playerTwo == msg.sender && thisGame.moveTwo == Move.noMove);
-        uint balanceInitial = balances[msg.sender];
-        uint balanceWithValueSent = balanceInitial.add(msg.value);
-        uint bet = thisGame.bet;
-        balances[msg.sender] = balanceWithValueSent.sub(bet);
-        thisGame.moveTwo = Move(move);
-        uint blockLimit = block.number.add(maxBlockDaysLimit);  //One day limit to show
+        uint balanceWithValueSent = balances[msg.sender].add(msg.value);
+        balances[msg.sender] = balanceWithValueSent.sub(thisGame.bet);
+        thisGame.moveTwo = move;
+        uint blockLimit = block.number.add(maxBlocksLimit);  //One day limit to show
         thisGame.blockLimit = blockLimit;
-        emit LogPlayerTwoMove(moveHashed, move, msg.value, blockLimit);
+        emit LogPlayerTwoMove(hash, move, msg.value, blockLimit);
     }
 
     //  Show the move from player one. And declare the winner.
-    function showMoveOne(bytes32 password, uint moveOne)
+    function showMoveOne(bytes32 password, Move moveOne)
         public
         whenRunning whenAlive
     {
-        bytes32 moveHashed = hashIt(password, moveOne);
-        Game storage thisGame = games[moveHashed];
+        bytes32 hash = hashIt(password, moveOne);
+        Game storage thisGame = games[hash];
         Move moveTwo = thisGame.moveTwo;
         require(thisGame.moveOne == Move.noMove && moveTwo != Move.noMove);
-        thisGame.moveOne = Move(moveOne);
-        emit LogShowMoveOne(moveHashed, moveOne);
+        thisGame.moveOne = moveOne;
+        emit LogShowMoveOne(hash, moveOne);
         address playerOne = thisGame.playerOne;
         address playerTwo = thisGame.playerTwo;
         uint bet = thisGame.bet;
-        clearGame(moveHashed);
-        Winner win = winner(moveOne, uint(moveTwo));
-        if (bet > 0)
-        {
-            if (win == Winner.playerOne){
-                balances[playerOne] = balances[playerOne].add(bet.mul(2));
-                emit LogWinner(moveHashed, playerOne, playerTwo, bet);
-            }
-            else if (win == Winner.playerTwo) {
-                balances[playerTwo] = balances[playerTwo].add(bet.mul(2));
-                emit LogWinner(moveHashed, playerTwo, playerOne, bet);
-            }
-            else if (win == Winner.draw){
-                balances[playerOne] = balances[playerOne].add(bet);
-                balances[playerTwo] = balances[playerTwo].add(bet);
-                emit LogDraw(moveHashed, playerOne, playerTwo, bet);
-            }
+        clearGame(hash);
+        Winner win = winner(moveOne, moveTwo);
+        if (win == Winner.playerOne){
+            emit LogWinner(hash, playerOne, playerTwo, bet);
+            if ( bet > 0) balances[playerOne] = balances[playerOne].add(bet.mul(2));
+        }
+        else if (win == Winner.playerTwo) {
+            emit LogWinner(hash, playerTwo, playerOne, bet);
+            if ( bet > 0) balances[playerTwo] = balances[playerTwo].add(bet.mul(2));
         }
         else {
-            if (win == Winner.playerOne){
-                emit LogWinner(moveHashed, playerOne, playerTwo, bet);
-            }
-            else if (win == Winner.playerTwo) {
-                emit LogWinner(moveHashed, playerTwo, playerOne, bet);
-            }
-            else if (win == Winner.draw){
-                emit LogDraw(moveHashed, playerOne, playerTwo, bet);
+            emit LogDraw(hash, playerOne, playerTwo, bet);
+            if ( bet > 0) {
+                balances[playerOne] = balances[playerOne].add(bet);
+                balances[playerTwo] = balances[playerTwo].add(bet);
             }
         }
     }
 
     //  Clear the game. And playerOne remains, so the Hash can not be used again.
-    function clearGame(bytes32 moveHashed)
+    function clearGame(bytes32 hash)
         private
         whenRunning whenAlive
     {
-        Game storage thisGame = games[moveHashed];
+        Game storage thisGame = games[hash];
         thisGame.playerTwo = address(0);
         thisGame.bet = 0;
         thisGame.blockLimit = 0;
@@ -162,26 +147,27 @@ contract RockPaperScissors is Killable{
     }
 
     //  If there is not player two
-    function claimNoGame(bytes32 moveHashed)
+    function claimNoGame(bytes32 hash)
         public
         whenRunning whenAlive
     {
-        Game storage thisGame = games[moveHashed];
+        Game storage thisGame = games[hash];
         uint bet = thisGame.bet;
         require(block.number > thisGame.blockLimit && thisGame.moveTwo == Move.noMove);
-        clearGame(moveHashed);
+        clearGame(hash);
+        emit LogClaimNoGame(hash);
         if (bet > 0) {
             address playerOne = thisGame.playerOne;
             balances[playerOne] = balances[playerOne].add(bet);
         }
     }
 
-    //  If the player one don't show his move
-    function claimMoveTwoNotShowed(bytes32 moveHashed)
+    //  If player one doesn't show his move
+    function claimMoveOneNotShown(bytes32 hash)
         public
         whenRunning whenAlive
     {
-        Game storage thisGame = games[moveHashed];
+        Game storage thisGame = games[hash];
         address playerOne = thisGame.playerOne;
         address playerTwo = thisGame.playerTwo;
         uint bet = thisGame.bet;
@@ -190,13 +176,11 @@ contract RockPaperScissors is Killable{
                     thisGame.moveOne == Move.noMove     &&
                     thisGame.moveTwo != Move.noMove
                 );
-        clearGame(moveHashed);
-        if (bet > 0) {
-            balances[playerTwo] = balances[playerTwo].add(bet.mul(2));
-            emit LogWinner(moveHashed, playerTwo, playerOne, bet);
-        }
-        else
-            emit LogWinner(moveHashed, playerTwo, playerOne, bet);
+        clearGame(hash);
+        emit LogClaimMoveOneNotShown(hash);
+        emit LogWinner(hash, playerTwo, playerOne, bet);
+        if (bet > 0) balances[playerTwo] = balances[playerTwo].add(bet.mul(2));
+        else {}
     }
 
     //  Withdraw msg.sender funds

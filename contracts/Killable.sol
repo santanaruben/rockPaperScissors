@@ -7,7 +7,6 @@ contract Killable is Pausable {
     event LogKilled(address indexed account);
 
     constructor () public {
-        _killed = false;
     }
 
     function isKilled() public view returns (bool) {
