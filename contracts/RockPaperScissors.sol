@@ -5,7 +5,7 @@ import "./Killable.sol";
 
 contract RockPaperScissors is Killable{
 
-    event LogPlayerOneMove(bytes32 indexed hash, address indexed playerOne, address playerTwo, uint bet, uint blockLimit);
+    event LogPlayerOneMove(bytes32 indexed hash, address indexed playerOne, address indexed playerTwo, uint bet, uint blockLimit);
     event LogPlayerTwoMove(bytes32 indexed hash, Move move, uint amount, uint blockLimit);
     event LogShowMoveOne(bytes32 indexed hash, Move move);
     event LogWinner(bytes32 indexed hash, address indexed winner, address indexed loser, uint bet);
@@ -17,7 +17,7 @@ contract RockPaperScissors is Killable{
     using SafeMath for uint256;
 
     // uint constant maxBlockDaysLimit = 86400 / 15;   // One day of blocks limit
-    uint constant maxBlocksLimit = 10;
+    uint constant maxBlocksLimit = 86400 / 15;
 
     enum Move   {   noMove,     //0
                     rock,       //1
@@ -26,10 +26,9 @@ contract RockPaperScissors is Killable{
                 }
 
     enum Winner {
-                    noWinner,   //0
+                    draw,       //0
                     playerOne,  //1
-                    playerTwo,  //2
-                    draw        //3
+                    playerTwo   //2
                 }
 
     struct Game {
@@ -37,7 +36,6 @@ contract RockPaperScissors is Killable{
         address playerTwo;
         uint bet;
         uint blockLimit;
-        Move moveOne;
         Move moveTwo;
     }
 
@@ -60,26 +58,25 @@ contract RockPaperScissors is Killable{
         public pure
         returns (Winner)
     {
-        require(moveOne != Move.noMove || moveTwo != Move.noMove);
+        require(moveOne != Move.noMove && moveTwo != Move.noMove);
         //same result (range of 3) = same winner. 0=Draw, 1=PlayerOne, 2=PlayerTwo.
         uint result = (3 + uint(moveOne) - uint(moveTwo)) % 3;    
-        if (result == 1) return Winner.playerOne;
-        else if (result == 2) return Winner.playerTwo;
-        else return Winner.draw;
+        return Winner(result);
     }
 
     //  Move from player one.
-    function playerOneMove(bytes32 hash, address playerTwo)
+    function playerOneMove(bytes32 hash, address playerTwo, uint blocksLimit)
         public payable
         whenRunning whenAlive
     {
+        require(hash != bytes32(0));
         require(playerTwo != address(0));
         Game storage thisGame = games[hash];
         require(thisGame.playerOne == address(0));
         thisGame.playerOne = msg.sender;
         thisGame.playerTwo = playerTwo;
         thisGame.bet = msg.value;
-        uint blockLimit = block.number.add(maxBlocksLimit);  //One day limit to play
+        uint blockLimit = block.number.add(blocksLimit);
         thisGame.blockLimit = blockLimit;
         emit LogPlayerOneMove(hash, msg.sender, playerTwo, msg.value, blockLimit);
     }
@@ -89,11 +86,11 @@ contract RockPaperScissors is Killable{
         public payable
         whenRunning whenAlive
     {
+        require(hash != bytes32(0));
         require(move != Move.noMove);
         Game storage thisGame = games[hash];
         require(thisGame.playerTwo == msg.sender && thisGame.moveTwo == Move.noMove);
-        uint balanceWithValueSent = balances[msg.sender].add(msg.value);
-        balances[msg.sender] = balanceWithValueSent.sub(thisGame.bet);
+        balances[msg.sender] = balances[msg.sender].add(msg.value).sub(thisGame.bet);
         thisGame.moveTwo = move;
         uint blockLimit = block.number.add(maxBlocksLimit);  //One day limit to show
         thisGame.blockLimit = blockLimit;
@@ -108,29 +105,26 @@ contract RockPaperScissors is Killable{
         bytes32 hash = hashIt(password, moveOne);
         Game storage thisGame = games[hash];
         Move moveTwo = thisGame.moveTwo;
-        require(thisGame.moveOne == Move.noMove && moveTwo != Move.noMove);
-        thisGame.moveOne = moveOne;
+        require(moveTwo != Move.noMove);
         emit LogShowMoveOne(hash, moveOne);
         address playerOne = thisGame.playerOne;
         address playerTwo = thisGame.playerTwo;
         uint bet = thisGame.bet;
         clearGame(hash);
         Winner win = winner(moveOne, moveTwo);
-        if (win == Winner.playerOne){
+        if (win == Winner.playerOne) { 
             emit LogWinner(hash, playerOne, playerTwo, bet);
             if ( bet > 0) balances[playerOne] = balances[playerOne].add(bet.mul(2));
-        }
-        else if (win == Winner.playerTwo) {
+        } else if (win == Winner.playerTwo) { 
             emit LogWinner(hash, playerTwo, playerOne, bet);
             if ( bet > 0) balances[playerTwo] = balances[playerTwo].add(bet.mul(2));
-        }
-        else {
+        } else if (win == Winner.draw) { 
             emit LogDraw(hash, playerOne, playerTwo, bet);
             if ( bet > 0) {
                 balances[playerOne] = balances[playerOne].add(bet);
                 balances[playerTwo] = balances[playerTwo].add(bet);
             }
-        }
+        } else { assert(false); }
     }
 
     //  Clear the game. And playerOne remains, so the Hash can not be used again.
@@ -142,7 +136,6 @@ contract RockPaperScissors is Killable{
         thisGame.playerTwo = address(0);
         thisGame.bet = 0;
         thisGame.blockLimit = 0;
-        thisGame.moveOne = Move.noMove;
         thisGame.moveTwo = Move.noMove;
     }
 
@@ -173,7 +166,6 @@ contract RockPaperScissors is Killable{
         uint bet = thisGame.bet;
         require(
                     block.number > thisGame.blockLimit  &&
-                    thisGame.moveOne == Move.noMove     &&
                     thisGame.moveTwo != Move.noMove
                 );
         clearGame(hash);

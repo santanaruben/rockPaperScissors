@@ -26,8 +26,11 @@ contract('RockPaperScissors', (accounts) => {
   const password = fromAscii(Math.random());
   const moveOne = 1;  //Rock
   const moveTwo = 3;  //Scissors
+  const shortAmount = toBN(toWei('0.00000000000000001'));
   const amount = toBN(toWei('0.01'));
-  const blockLimit = 10;
+  const bigAmount = toBN(toWei('90'));
+  const userBlockLimit = 10;
+  const maxBlockLimit = 86400 / 15;
   const theZeroAccount = '0x0000000000000000000000000000000000000000';
 
   beforeEach('deploy a new RockPaperScissors and create a hash', async function () {
@@ -35,8 +38,7 @@ contract('RockPaperScissors', (accounts) => {
       from: playerOne
     });
 
-    const _hash = await rpsInstance.hashIt(password, moveOne);
-    hash = _hash;
+    hash = await rpsInstance.hashIt(password, moveOne);
   });
 
   it('should do the first move from playerOne', async function () {
@@ -45,7 +47,7 @@ contract('RockPaperScissors', (accounts) => {
     const balanceContractExpected = balanceContractBefore.add(amount);
 
     // Transaction.
-    const tx = await rpsInstance.playerOneMove(hash, playerTwo, {
+    await rpsInstance.playerOneMove(hash, playerTwo, userBlockLimit, {
       value: amount,
       from: playerOne
     });
@@ -64,17 +66,16 @@ contract('RockPaperScissors', (accounts) => {
     assert.strictEqual(check1.playerTwo, theZeroAccount, "Error in playerTwo account Before Tx")
     assert.strictEqual(check1.bet.toString(10), '0', "Error in bet amount Before Tx")
     assert.strictEqual(check1.blockLimit.toString(10), '0', "Error in blockLimit Before Tx")
-    assert.strictEqual(check1.moveOne.toString(10), '0', "Error in moveOne Before Tx")
     assert.strictEqual(check1.moveTwo.toString(10), '0', "Error in moveTwo Before Tx")
 
     // Transaction
-    const tx = await rpsInstance.playerOneMove(hash, playerTwo, {
+    const tx = await rpsInstance.playerOneMove(hash, playerTwo, userBlockLimit, {
       from: playerOne,
       value: amount
     });
 
     const betAmountExpected = amount;
-    const blockLimitExpected = tx.receipt.blockNumber + blockLimit;
+    const blockLimitExpected = tx.receipt.blockNumber + userBlockLimit;
 
     // Check values after Tx
     const check2 = await rpsInstance.games(hash);
@@ -86,15 +87,16 @@ contract('RockPaperScissors', (accounts) => {
 
   it('should check the emitted LogPlayerOneMove event', async function () {
     // Transaction
-    const tx = await rpsInstance.playerOneMove(hash, playerTwo, {
+    const tx = await rpsInstance.playerOneMove(hash, playerTwo, userBlockLimit, {
       from: playerOne,
       value: amount
     });
 
     const log = tx.logs[0].args;
-    const blockLimitExpected = tx.receipt.blockNumber + blockLimit;
+    const blockLimitExpected = tx.receipt.blockNumber + userBlockLimit;
 
     // Checks
+    assert.strictEqual(tx.logs.length, 1);
     assert.strictEqual(log.hash, hash);
     assert.strictEqual(log.playerOne, playerOne);
     assert.strictEqual(log.playerTwo, playerTwo);
@@ -105,7 +107,7 @@ contract('RockPaperScissors', (accounts) => {
 
   it('should do the second move from playerTwo and check the LogPlayerTwoMove event', async function () {
     // Transactions
-    const tx1 = await rpsInstance.playerOneMove(hash, playerTwo, {
+    await rpsInstance.playerOneMove(hash, playerTwo, userBlockLimit, {
       from: playerOne,
       value: amount
     });
@@ -114,7 +116,7 @@ contract('RockPaperScissors', (accounts) => {
       value: amount
     });
 
-    const blockLimitExpected = tx2.receipt.blockNumber + blockLimit;
+    const blockLimitExpected = tx2.receipt.blockNumber + maxBlockLimit;
 
     // Check values after Tx2
     const check2 = await rpsInstance.games(hash);
@@ -124,6 +126,7 @@ contract('RockPaperScissors', (accounts) => {
     const log = tx2.logs[0].args;
 
     // Checks
+    assert.strictEqual(tx2.logs.length, 1);
     assert.strictEqual(log.hash, hash);
     assert.strictEqual(log.move.toString(10), moveTwo.toString(10));
     assert.strictEqual(log.amount.toString(10), amount.toString(10));
@@ -133,11 +136,11 @@ contract('RockPaperScissors', (accounts) => {
 
   it('should reveal the playerOne move, declare the winner (playerOne), check clear storage of the game and the LogShowMoveOne event', async function () {
     // Transactions
-    const tx1 = await rpsInstance.playerOneMove(hash, playerTwo, {
+    await rpsInstance.playerOneMove(hash, playerTwo, userBlockLimit, {
       from: playerOne,
       value: amount
     });
-    const tx2 = await rpsInstance.playerTwoMove(hash, moveTwo, {
+    await rpsInstance.playerTwoMove(hash, moveTwo, {
       from: playerTwo,
       value: amount
     });
@@ -153,10 +156,10 @@ contract('RockPaperScissors', (accounts) => {
     assert.strictEqual(check.playerTwo, theZeroAccount, "Error in playerTwo account After Tx")
     assert.strictEqual(check.bet.toString(10), '0', "Error in bet amount After Tx")
     assert.strictEqual(check.blockLimit.toString(10), '0', "Error in blockLimit After Tx")
-    assert.strictEqual(check.moveOne.toString(10), '0', "Error in moveOne After Tx")
     assert.strictEqual(check.moveTwo.toString(10), '0', "Error in moveTwo After Tx")
 
     // Check emitted event.
+    assert.strictEqual(tx3.logs.length, 2);
     assert.strictEqual(log.hash, hash);
     assert.strictEqual(log.move.toString(10), moveOne.toString(10));
     assert.strictEqual(tx3.logs[0].event, 'LogShowMoveOne');
@@ -164,18 +167,18 @@ contract('RockPaperScissors', (accounts) => {
 
   it('should reveal the playerOne move, declare the winner (playerOne), check his balance and the LogWinner event', async function () {
     // Transactions
-    const tx1 = await rpsInstance.playerOneMove(hash, playerTwo, {
+    await rpsInstance.playerOneMove(hash, playerTwo, userBlockLimit, {
       from: playerOne,
       value: amount
     });
-    const tx2 = await rpsInstance.playerTwoMove(hash, moveTwo, {
+    await rpsInstance.playerTwoMove(hash, moveTwo, {
       from: playerTwo,
       value: amount
     });
 
     // Get playerOne balance before Tx3
     const balancePlayerOneBeforeTx3 = await rpsInstance.balances(playerOne);
-    const balancePlayerOneExpected = toBN(balancePlayerOneBeforeTx3.add(amount.add(amount)));
+    const balancePlayerOneExpected = toBN(balancePlayerOneBeforeTx3.add(amount.mul(toBN(2))));
 
     const tx3 = await rpsInstance.showMoveOne(password, moveOne, {
       from: playerOne
@@ -191,6 +194,7 @@ contract('RockPaperScissors', (accounts) => {
     const log = tx3.logs[1].args;
 
     // Checks
+    assert.strictEqual(tx3.logs.length, 2);
     assert.strictEqual(log.hash, hash);
     assert.strictEqual(log.winner, playerOne);
     assert.strictEqual(log.loser, playerTwo);
@@ -198,13 +202,87 @@ contract('RockPaperScissors', (accounts) => {
     assert.strictEqual(tx3.logs[1].event, 'LogWinner');
   });
 
+  it('Same function than before with shortAmount', async function () {
+    // Transactions
+    await rpsInstance.playerOneMove(hash, playerTwo, userBlockLimit, {
+      from: playerOne,
+      value: shortAmount
+    });
+    await rpsInstance.playerTwoMove(hash, moveTwo, {
+      from: playerTwo,
+      value: shortAmount
+    });
+
+    // Get playerOne balance before Tx3
+    const balancePlayerOneBeforeTx3 = await rpsInstance.balances(playerOne);
+    const balancePlayerOneExpected = toBN(balancePlayerOneBeforeTx3.add(shortAmount.mul(toBN(2))));
+
+    const tx3 = await rpsInstance.showMoveOne(password, moveOne, {
+      from: playerOne
+    });
+
+    // Get playerOne balance after Tx3
+    const balancePlayerOneAfterTx3 = await rpsInstance.balances(playerOne);
+
+    // Check
+    assert.strictEqual(balancePlayerOneAfterTx3.toString(10), balancePlayerOneExpected.toString(10), "Balance error in PlayerOne account")
+
+    
+    const log = tx3.logs[1].args;
+
+    // Checks
+    assert.strictEqual(tx3.logs.length, 2);
+    assert.strictEqual(log.hash, hash);
+    assert.strictEqual(log.winner, playerOne);
+    assert.strictEqual(log.loser, playerTwo);
+    assert.strictEqual(log.bet.toString(10), shortAmount.toString(10));
+    assert.strictEqual(tx3.logs[1].event, 'LogWinner');
+  });
+
+  it('Same function than before with bigAmount', async function () {
+    // Transactions
+    await rpsInstance.playerOneMove(hash, playerTwo, userBlockLimit, {
+      from: playerOne,
+      value: bigAmount
+    });
+    await rpsInstance.playerTwoMove(hash, moveTwo, {
+      from: playerTwo,
+      value: bigAmount
+    });
+
+    // Get playerOne balance before Tx3
+    const balancePlayerOneBeforeTx3 = await rpsInstance.balances(playerOne);
+    const balancePlayerOneExpected = toBN(balancePlayerOneBeforeTx3.add(bigAmount.mul(toBN(2))));
+
+    const tx3 = await rpsInstance.showMoveOne(password, moveOne, {
+      from: playerOne
+    });
+
+    // Get playerOne balance after Tx3
+    const balancePlayerOneAfterTx3 = await rpsInstance.balances(playerOne);
+
+    // Check
+    assert.strictEqual(balancePlayerOneAfterTx3.toString(10), balancePlayerOneExpected.toString(10), "Balance error in PlayerOne account")
+
+    
+    const log = tx3.logs[1].args;
+
+    // Checks
+    assert.strictEqual(tx3.logs.length, 2);
+    assert.strictEqual(log.hash, hash);
+    assert.strictEqual(log.winner, playerOne);
+    assert.strictEqual(log.loser, playerTwo);
+    assert.strictEqual(log.bet.toString(10), bigAmount.toString(10));
+    assert.strictEqual(tx3.logs[1].event, 'LogWinner');
+  });
+
   it('should reveal playerOne move, declare a Draw, check their balances, and the LogDraw event', async function () {
     // Transactions
-    const tx1 = await rpsInstance.playerOneMove(hash, playerTwo, {
+    await rpsInstance.playerOneMove(hash, playerTwo, userBlockLimit, {
       from: playerOne,
       value: amount
     });
-    const tx2 = await rpsInstance.playerTwoMove(hash, moveOne, {
+    await rpsInstance.playerTwoMove(hash, moveOne, {
       from: playerTwo,
       value: amount
     });
@@ -231,6 +309,7 @@ contract('RockPaperScissors', (accounts) => {
     const log = tx3.logs[1].args;
 
     // Checks
+    assert.strictEqual(tx3.logs.length, 2);
     assert.strictEqual(log.hash, hash);
     assert.strictEqual(log.playerOne, playerOne);
     assert.strictEqual(log.playerTwo, playerTwo);
@@ -239,48 +318,38 @@ contract('RockPaperScissors', (accounts) => {
   });
 
   it('should withdraw the winning bet and check the LogWithdrawn event', async function () {
-    // Calculate balances.
-    const balancePlayerOneBefore = toBN(await web3.eth.getBalance(playerOne));
 
     // Transactions
-    const tx1 = await rpsInstance.playerOneMove(hash, playerTwo, {
+    await rpsInstance.playerOneMove(hash, playerTwo, userBlockLimit, {
       from: playerOne,
       value: amount
     });
-    const tx2 = await rpsInstance.playerTwoMove(hash, moveTwo, {
+    await rpsInstance.playerTwoMove(hash, moveTwo, {
       from: playerTwo,
       value: amount
     });
-    const tx3 = await rpsInstance.showMoveOne(password, moveOne, {
+    await rpsInstance.showMoveOne(password, moveOne, {
       from: playerOne
     });
+
+    // Calculate balance.
+    const balancePlayerOneBefore = toBN(await web3.eth.getBalance(playerOne));
+
     const tx4 = await rpsInstance.withdraw({
       from: playerOne
     });
 
     // PlayerOne Balance (with bet winning expected)(without gas costs)
-    const balancePlayerOneWithoutGasCost = toBN(balancePlayerOneBefore.add(amount));
+    const balancePlayerOneWithoutGasCost = toBN(balancePlayerOneBefore.add(amount.mul(toBN(2))));
 
-    // Get gas cost from tx1
-    const transaction1 = await web3.eth.getTransaction(tx1.tx);
-    const gasPrice1 = transaction1.gasPrice;
-    const gasUsed1 = toBN(tx1.receipt.gasUsed);
-    const gasCost1 = gasUsed1.mul(toBN(gasPrice1));
-    // Get gas cost from tx3
-    const transaction3 = await web3.eth.getTransaction(tx3.tx);
-    const gasPrice3 = transaction3.gasPrice;
-    const gasUsed3 = toBN(tx3.receipt.gasUsed);
-    const gasCost3 = gasUsed3.mul(toBN(gasPrice3));
     // Get gas cost from tx4
-    const transaction4 = await web3.eth.getTransaction(tx4.tx);
-    const gasPrice4 = transaction4.gasPrice;
-    const gasUsed4 = toBN(tx4.receipt.gasUsed);
-    const gasCost4 = gasUsed4.mul(toBN(gasPrice4));
+    const transaction = await web3.eth.getTransaction(tx4.tx);
+    const gasPrice = transaction.gasPrice;
+    const gasUsed = toBN(tx4.receipt.gasUsed);
+    const gasCost = gasUsed.mul(toBN(gasPrice));
 
-    // Calculate gas costs.
-    const gasCosts = toBN(gasCost1.add(gasCost3).add(gasCost4))
     // Calculate PlayerOne balance expected (with gas costs).
-    const balancePlayerOneExpected = balancePlayerOneWithoutGasCost.sub(gasCosts);
+    const balancePlayerOneExpected = balancePlayerOneWithoutGasCost.sub(gasCost);
     // Calculate withdraw amount expected
     const withdrawAmountExpected = amount.add(amount);
 
@@ -292,6 +361,7 @@ contract('RockPaperScissors', (accounts) => {
     // Checks
     assert.strictEqual(balancePlayerOneAfterTx, balancePlayerOneExpected.toString(10), "Balance error in PlayerOne account")
     // LogWithdrawn
+    assert.strictEqual(tx4.logs.length, 1);
     assert.strictEqual(log.amount.toString(10), withdrawAmountExpected.toString(10));
     assert.strictEqual(log.account, playerOne);
     assert.strictEqual(tx4.logs[0].event, 'LogWithdrawn');
@@ -303,13 +373,13 @@ contract('RockPaperScissors', (accounts) => {
     const balancePlayerOneExpected = toBN(balancePlayerOneBeforeTx.add(amount));
 
     // Transaction 1 (First Move)
-    const tx1 = await rpsInstance.playerOneMove(hash, playerTwo, {
+    await rpsInstance.playerOneMove(hash, playerTwo, userBlockLimit, {
       from: playerOne,
       value: amount
     });
 
     // Transaction 2. (For the blockLimit to expire)
-    for(i = 0; i < blockLimit; i++) {
+    for(i = 0; i < userBlockLimit; i++){
       await advanceBlock();
     }
 
@@ -323,6 +393,7 @@ contract('RockPaperScissors', (accounts) => {
 
     // Checks
     assert.strictEqual(balancePlayerOneAfterTx.toString(10), balancePlayerOneExpected.toString(10), "Balance error in PlayerOne account")
+    assert.strictEqual(tx3.logs.length, 1);
     assert.strictEqual(log.hash, hash);
     assert.strictEqual(tx3.logs[0].event, 'LogClaimNoGame');
   });
@@ -330,22 +401,22 @@ contract('RockPaperScissors', (accounts) => {
   it('should claim Move One Not Shown, check playerTwo balance, the LogClaimMoveOneNotShown and the LogWinner events', async function () {
     // Get playerOne balance before Tx
     const balancePlayerTwoBeforeTx = await rpsInstance.balances(playerTwo);
-    const balancePlayerTwoExpected = toBN(balancePlayerTwoBeforeTx.add(amount).add(amount));
+    const balancePlayerTwoExpected = toBN(balancePlayerTwoBeforeTx.add(amount.mul(toBN(2))));
 
     // Transaction 1 (First Move)
-    const tx1 = await rpsInstance.playerOneMove(hash, playerTwo, {
+    await rpsInstance.playerOneMove(hash, playerTwo, userBlockLimit, {
       from: playerOne,
       value: amount
     });
 
     // Transaction 2 (Second Move)
-    const tx2 = await rpsInstance.playerTwoMove(hash, moveTwo, {
+    await rpsInstance.playerTwoMove(hash, moveTwo, {
       from: playerTwo,
       value: amount
     });
 
     // Transaction 3. (For the blockLimit to expire)
-    for(i = 0; i < blockLimit; i++) {
+    for(i = 0; i < maxBlockLimit; i++){
       await advanceBlock();
     }
 
@@ -360,7 +431,9 @@ contract('RockPaperScissors', (accounts) => {
     const balancePlayerTwoAfterTx = await rpsInstance.balances(playerTwo);
 
     // Checks
-    assert.strictEqual(balancePlayerTwoAfterTx.toString(10), balancePlayerTwoExpected.toString(10), "Balance error in PlayerTwo account")
+    assert.strictEqual(balancePlayerTwoAfterTx.toString(10), balancePlayerTwoExpected.toString(10), "Balance error in PlayerTwo account");
+    // Logs
+    assert.strictEqual(tx4.logs.length, 2);
     // LogClaimMoveOneNotShown
     assert.strictEqual(log1.hash, hash);
     assert.strictEqual(tx4.logs[0].event, 'LogClaimMoveOneNotShown');
@@ -374,48 +447,30 @@ contract('RockPaperScissors', (accounts) => {
   });
 
   it('should kill the contract and withdraw the funds', async function () {
-    // Calculate PlayerOne balance.
-    const balancePlayerOneBefore = toBN(await web3.eth.getBalance(playerOne));
-
     // Transaction 1 (First Move)
-    const tx1 = await rpsInstance.playerOneMove(hash, playerTwo, {
+    await rpsInstance.playerOneMove(hash, playerTwo, userBlockLimit, {
       from: playerOne,
       value: amount
     });
 
     // Transaction 2 (Second Move)
-    const tx2 = await rpsInstance.playerTwoMove(hash, moveTwo, {
+    await rpsInstance.playerTwoMove(hash, moveTwo, {
       from: playerTwo,
       value: amount
     });
 
-    // Get gas cost from tx1
-    const transaction1 = await web3.eth.getTransaction(tx1.tx);
-    const gasPrice1 = transaction1.gasPrice;
-    const gasUsed1 = toBN(tx1.receipt.gasUsed);
-    const gasCost1 = gasUsed1.mul(toBN(gasPrice1));
-
     // Transaction 3.
-    const tx3 = await rpsInstance.pause({
+    await rpsInstance.pause({
       from: playerOne
     });
-
-    // Get gas cost from tx2
-    const transaction3 = await web3.eth.getTransaction(tx3.tx);
-    const gasPrice3 = transaction3.gasPrice;
-    const gasUsed3 = toBN(tx3.receipt.gasUsed);
-    const gasCost3 = gasUsed3.mul(toBN(gasPrice3));
 
     // Transaction 4.
-    const tx4 = await rpsInstance.kill({
+    await rpsInstance.kill({
       from: playerOne
     });
 
-    // Get gas cost from tx4
-    const transaction4 = await web3.eth.getTransaction(tx4.tx);
-    const gasPrice4 = transaction4.gasPrice;
-    const gasUsed4 = toBN(tx4.receipt.gasUsed);
-    const gasCost4 = gasUsed4.mul(toBN(gasPrice4));
+    // Calculate PlayerOne balance.
+    const balancePlayerOneBefore = toBN(await web3.eth.getBalance(playerOne));
 
     // Transaction 5.
     const tx5 = await rpsInstance.emergencyWithdraw({
@@ -423,15 +478,12 @@ contract('RockPaperScissors', (accounts) => {
     });
 
     // Get gas cost from tx5
-    const transaction5 = await web3.eth.getTransaction(tx5.tx);
-    const gasPrice5 = transaction5.gasPrice;
-    const gasUsed5 = toBN(tx5.receipt.gasUsed);
-    const gasCost5 = gasUsed5.mul(toBN(gasPrice5));
+    const transaction = await web3.eth.getTransaction(tx5.tx);
+    const gasPrice = transaction.gasPrice;
+    const gasUsed = toBN(tx5.receipt.gasUsed);
+    const gasCost = gasUsed.mul(toBN(gasPrice));
 
-    // Get gas cost from all txs
-    const gasCost = toBN(gasCost1.add(gasCost3).add(gasCost4).add(gasCost5));
-
-    // Calculate PlayerOne balance expected (with playerTwo bet amount)(with txs gas costs).
+    // Calculate PlayerOne balance expected (with playerTwo bet amount)(with tx gas cost).
     const balancePlayerOneExpected = balancePlayerOneBefore.add(amount).sub(gasCost);
 
     // Get balance of PlayerOne account after transactions.
