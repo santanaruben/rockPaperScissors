@@ -10,16 +10,23 @@ contract TestRockPaperScissors {
     uint public constant amountToSend = 0.01 ether;
     uint public constant userBlocksLimit = 10;
     uint public constant maxBlocksLimit = 86400 / 15;
-    address playerTwo = 0xFAf56184419A832E3274C739D7fc8e39942B52e2;
-    RockPaperScissors r = new RockPaperScissors(false);
-    bytes32 hash = r.hashIt(bytes32(0), RockPaperScissors.Move.rock);     // Hash key
+    address playerTwo;
+    RockPaperScissors r;
+    bytes32 hash;
 
+    constructor()
+        public
+    {
+        playerTwo = 0xFAf56184419A832E3274C739D7fc8e39942B52e2;
+        r = new RockPaperScissors(false);
+        hash = r.hashIt(bytes32(0), RockPaperScissors.Move.rock);
+    }
     function testPlayerOneMove()
         public
     {
         // Initial values
         uint balanceContractInitial = address(r).balance;
-        (,,uint playerOneBetInitial,,) = r.games(hash);
+        (,,,uint playerOneBetInitial,) = r.games(hash);
         // Expected values
         uint balanceContractExpected = balanceContractInitial + amountToSend;
         uint playerOneBetExpected = playerOneBetInitial + amountToSend;
@@ -28,7 +35,7 @@ contract TestRockPaperScissors {
         r.playerOneMove.value(amountToSend)(hash, playerTwo, userBlocksLimit);
         // Values after transaction
         uint balanceContractAfterTx = address(r).balance;
-        (,,uint playerOneBetAfterTx, uint blockLimitAfterTx,) = r.games(hash);
+        (,,,uint playerOneBetAfterTx, uint blockLimitAfterTx) = r.games(hash);
         // Asserts
         Assert.equal(balanceContractAfterTx, balanceContractExpected, "Error in Contract Balance");
         Assert.equal(playerOneBetAfterTx, playerOneBetExpected, "Error in Player One Bet");

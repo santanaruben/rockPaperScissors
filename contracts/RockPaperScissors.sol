@@ -16,7 +16,6 @@ contract RockPaperScissors is Killable{
 
     using SafeMath for uint256;
 
-    // uint constant maxBlockDaysLimit = 86400 / 15;   // One day of blocks limit
     uint constant maxBlocksLimit = 86400 / 15;
 
     enum Move   {   noMove,     //0
@@ -34,9 +33,9 @@ contract RockPaperScissors is Killable{
     struct Game {
         address playerOne;
         address playerTwo;
+        Move moveTwo;
         uint bet;
         uint blockLimit;
-        Move moveTwo;
     }
 
     mapping(bytes32 => Game) public games;
@@ -60,8 +59,7 @@ contract RockPaperScissors is Killable{
     {
         require(moveOne != Move.noMove && moveTwo != Move.noMove);
         //same result (range of 3) = same winner. 0=Draw, 1=PlayerOne, 2=PlayerTwo.
-        uint result = (3 + uint(moveOne) - uint(moveTwo)) % 3;    
-        return Winner(result);
+        return Winner((3 + uint(moveOne) - uint(moveTwo)) % 3);
     }
 
     //  Move from player one.
@@ -86,7 +84,6 @@ contract RockPaperScissors is Killable{
         public payable
         whenRunning whenAlive
     {
-        require(hash != bytes32(0));
         require(move != Move.noMove);
         Game storage thisGame = games[hash];
         require(thisGame.playerTwo == msg.sender && thisGame.moveTwo == Move.noMove);
@@ -146,7 +143,9 @@ contract RockPaperScissors is Killable{
     {
         Game storage thisGame = games[hash];
         uint bet = thisGame.bet;
-        require(block.number > thisGame.blockLimit && thisGame.moveTwo == Move.noMove);
+        require(block.number > thisGame.blockLimit);
+        require(thisGame.playerTwo != address(0));
+        require(thisGame.moveTwo == Move.noMove);
         clearGame(hash);
         emit LogClaimNoGame(hash);
         if (bet > 0) {

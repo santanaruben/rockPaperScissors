@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RockPaperScissors | Project 3 | B9Lab Academy</title>
+</head>
+
+<body>
+  <nav class="navbar navbar-dark bg-dark">
+    <span class="navbar-brand mb-0 ml-4 h1 logoText" style="cursor:pointer; z-index: 10;" data-toggle="modal"
+      data-target="#modalBienvenida"><div class="row"><div class="col" id="b9lab"></div><div class="col">RockPaperScissors Project</div></div></span>
+    <span class="navbar-brand mb-0 mr-4 h1" id="amountContract"></span>
+    <span><span id="activity"></span>
+      <div class="btn-group" id="buttonAdmin" style="display:none">
+        <button type="button" class="btn btn-secondary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"
+          aria-expanded="false">
+          Admin
+        </button>
+        <div class="dropdown-menu dropdown-menu-right" id="adminButtons">
+        </div>
+      </div>
+    </span>
+
+  </nav>
+  <div class="container-fluid mt-1">
+    <div class="row" style="margin:auto;">
+      <div class="col scene_element fadeInDownB">
+        <div>
+          <div class="row" style="margin:auto;">
+            <div class="col col-md mt-4" style="padding: 0;">
+
+              <div class="form-row">
+                <label for="yourAddress" class="col-3 col-form-label mb-2">
+                  Your address
+                </label>
+                <label id="yourAddress" class="col-9 col-form-label" title="This is your address">
+                </label>
+
+                <label for="yourBalance" class="col-3 col-form-label mb-2">
+                  Your balance
+                </label>
+                <div id="yourBalance" class="col-4 col-form-label"
+                  title="This is your balance (in WEI) outside the contract">
+                </div>
+                <div class="col-1" style="font-size: 25px">
+                  =
+                </div>
+                <div id="yourBalanceEth" class="col-4 col-form-label text-right"
+                  title="This is your balance (in ETH) outside the contract">
+                </div>
+
+                <label for="yourCBalance" class="col-3 col-form-label mb-2">
+                  Your Contract balance
+                </label>
+                <div id="yourCBalance" class="col-4 col-form-label"
+                  title="This is your balance (in WEI) inside the contract">
+                </div>
+                <div class="col-1" style="font-size: 25px">
+                  =
+                </div>
+                <div id="yourCBalanceEth" class="col-4 col-form-label text-right"
+                  title="This is your balance (in ETH) inside the contract">
+                </div>
+              </div>
+
+              <nav class="nav-pills nav-fill">
+                <div class="nav nav-tabs" id="nav-tab-principal" role="tablist">
+                  <a class="nav-item nav-link active" id="nav-hash-tab" data-toggle="tab" href="#nav-hash" role="tab"
+                    aria-controls="nav-hash" aria-selected="false">Create Hash</a>
+                  <a class="nav-item nav-link" id="nav-playerOneMove-tab" data-toggle="tab" href="#nav-playerOneMove"
+                    role="tab" aria-controls="nav-playerOneMove" aria-selected="false">Player One Move</a>
+                  <a class="nav-item nav-link" id="nav-playerTwoMove-tab" data-toggle="tab" href="#nav-playerTwoMove"
+                    role="tab" aria-controls="nav-playerTwoMove" aria-selected="false">Player Two Move</a>
+                  <a class="nav-item nav-link" id="nav-showMoveOne-tab" data-toggle="tab" href="#nav-showMoveOne"
+                    role="tab" aria-controls="nav-showMoveOne" aria-selected="false">Show Move One</a>
+                  <a class="nav-item nav-link" id="nav-claimNoGame-tab" data-toggle="tab" href="#nav-claimNoGame"
+                    role="tab" aria-controls="nav-claimNoGame" aria-selected="false">Claim No Game</a>
+                  <a class="nav-item nav-link" id="nav-claimMoveOneNotShown-tab" data-toggle="tab"
+                    href="#nav-claimMoveOneNotShown" role="tab" aria-controls="nav-claimMoveOneNotShown"
+                    aria-selected="false">Claim Move One Not Shown</a>
+                  <a class="nav-item nav-link" id="nav-withdraw-tab" data-toggle="tab" href="#nav-withdraw" role="tab"
+                    aria-controls="nav-withdraw" aria-selected="false">Withdraw</a>
+                </div>
+              </nav>
+              <div class="tab-content" id="nav-tabContent-principal">
+
+                <div class="tab-pane fade show active" id="nav-hash" role="tabpanel" aria-labelledby="nav-hash-tab">
+
+                  <form class="mt-4" novalidate>
+                    <div class="form-row">
+                      <label style="cursor: pointer" for="password" class="col-3 col-form-label mb-4">
+                        Password
+                      </label>
+                      <div class="col-9 hashClass">
+                        <input type="text" class="form-control" id="password" placeholder="Password here" autofocus
+                          required>
+                        <div class="valid-feedback">
+                          Looks good!
+                        </div>
+                        <div class="invalid-feedback">
+                          Fill in this field.
+                        </div>
+                      </div>
+
+                      <label style="cursor: pointer" class="col-3 col-form-label mb-4">
+                        Move
+                      </label>
+                      <div class="row" style="width: 70%; margin: auto;">
+                        <div class="col">
+                          <label>
+                            <input type="radio" name="playerOneMove" value="1">
+                            <div class="rock" title="Rock" data-toggle="tooltip" data-placement="bottom"></div>
+                          </label>
+                        </div>
+                        <div class="col">
+                          <label>
+                            <input type="radio" name="playerOneMove" value="2">
+                            <div class="paper" title="Paper" data-toggle="tooltip" data-placement="bottom"></div>
+                          </label>
+                        </div>
+                        <div class="col">
+                          <label>
+                            <input type="radio" name="playerOneMove" value="3">
+                            <div class="scissors" title="Scissors" data-toggle="tooltip" data-placement="bottom"></div>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+
+                  <div class="text-center mt-3">
+                    <button id="hashIt" class="btn btn-info" style="margin: 4px;">
+                      Create Hash
+                    </button>
+                  </div>
+                </div>
+
+                <div class="tab-pane fade" id="nav-playerOneMove" role="tabpanel"
+                  aria-labelledby="nav-playerOneMove-tab">
+
+                  <form class="mt-4" novalidate>
+                    <div class="form-row">
+                      <label style="cursor: pointer" for="hashPlayerOneMove" class="col-3 col-form-label mb-4">
+                        Hash
+                      </label>
+                      <div class="col-9 playerOneMoveClass">
+                        <input type="text" class="form-control" id="hashPlayerOneMove"
+                          onkeypress="return hexOnly(event)" maxlength="66" placeholder="Hash here"
+                          pattern="[(A-f),(0-9),(x)]{66}" required>
+                        <div class="valid-feedback">
+                          This is a valid hash!
+                        </div>
+                        <div class="invalid-feedback">
+                          Must be a valid hash!
+                        </div>
+                      </div>
+
+                      <label style="cursor: pointer" for="amount" class="col-3 col-form-label mb-4">
+                        Bet
+                      </label>
+                      <div class="col-4 playerOneMoveClass">
+                        <input type="number" min="2" class="form-control" id="amount"
+                          onkeypress="return numbersOnly(event)" placeholder="Amount (in WEI) to Bet"
+                          pattern="[(0-9)]{1,18}" autofocus required>
+                        <div class="valid-feedback">
+                          Looks good!
+                        </div>
+                        <div class="invalid-feedback">
+                          Must be greater than one
+                        </div>
+                      </div>
+                      <div class="col-1" style="font-size: 25px">=</div>
+                      <div id="amountEth" class="col-4 col-form-label text-right"
+                        title="This is the amount (in ETH) to Bet">
+                      </div>
+
+                      <label style="cursor: pointer" for="playerTwo" class="col-3 col-form-label mb-4">
+                        Player Two address
+                      </label>
+                      <div class="col-9 playerOneMoveClass">
+                        <input type="text" class="form-control" id="playerTwo" onkeypress="return hexOnly(event)"
+                          placeholder="Player Two account here" pattern="[(A-f),(0-9),(x)]{42}"
+                          value="0xFc22EcdB4654AA9a4779FD7d4D45062224FAFbCC" required>
+                        <div class="valid-feedback">
+                          Can I play with you?
+                        </div>
+                        <div class="invalid-feedback">
+                          Must be a valid ethereum address!
+                        </div>
+                      </div>
+
+                      <label style="cursor: pointer" for="blockDays" class="col-3 col-form-label mb-4">
+                        Block Days Limit
+                      </label>
+                      <div class="col-9 playerOneMoveClass">
+                        <input type="number" class="form-control" min="1" max="7" id="blockDays"
+                          onkeypress="return numbersOnly(event)" placeholder="Block days limit here" required>
+                        <div class="valid-feedback">
+                          Looks good!
+                        </div>
+                        <div class="invalid-feedback">
+                          Fill in this field with a value between 1 and 7.
+                        </div>
+                      </div>
+
+                    </div>
+                  </form>
+                  <div class="text-center">
+                    <button id="playerOneMove" class="btn btn-primary" style="margin: 4px;">
+                      Player One Move
+                    </button>
+                  </div>
+                </div>
+
+                <div class="tab-pane fade" id="nav-playerTwoMove" role="tabpanel"
+                  aria-labelledby="nav-playerTwoMove-tab">
+
+                  <form class="mt-4" novalidate>
+                    <div class="form-row">
+
+                      <label style="cursor: pointer" for="hashPlayerTwoMove" class="col-3 col-form-label mb-4">
+                        Hash
+                      </label>
+                      <div class="col-9 playerTwoMoveClass">
+                        <input type="text" class="form-control" id="hashPlayerTwoMove"
+                          onkeypress="return hexOnly(event)" maxlength="66" placeholder="Hash here"
+                          pattern="[(A-f),(0-9),(x)]{66}" required>
+                        <div class="valid-feedback">
+                          This is a valid hash!
+                        </div>
+                        <div class="invalid-feedback">
+                          Must be a valid hash!
+                        </div>
+                      </div>
+
+                      <label style="cursor: pointer" class="col-3 col-form-label mb-4">
+                        Move
+                      </label>
+                      <div class="row" style="width: 70%; margin: auto;">
+                        <div class="col">
+                          <label>
+                            <input type="radio" name="playerTwoMove" value="1">
+                            <div class="rock" title="Rock" data-toggle="tooltip" data-placement="bottom"></div>
+                          </label>
+                        </div>
+                        <div class="col">
+                          <label>
+                            <input type="radio" name="playerTwoMove" value="2">
+                            <div class="paper" title="Paper" data-toggle="tooltip" data-placement="bottom"></div>
+                          </label>
+                        </div>
+                        <div class="col">
+                          <label>
+                            <input type="radio" name="playerTwoMove" value="3">
+                            <div class="scissors" title="Scissors" data-toggle="tooltip" data-placement="bottom"></div>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+
+                  <div class="text-center mt-3">
+                    <button id="playerTwoMove" class="btn btn-info" style="margin: 4px;">
+                      Player Two Move
+                    </button>
+                  </div>
+                </div>
+
+
+                <div class="tab-pane fade" id="nav-showMoveOne" role="tabpanel" aria-labelledby="nav-showMoveOne-tab">
+
+                  <form class="mt-4" novalidate>
+                    <div class="form-row">
+                      <label style="cursor: pointer" for="passwordShowMoveOne" class="col-3 col-form-label mb-4">
+                        Password
+                      </label>
+                      <div class="col-9 ShowMoveOneClass">
+                        <input type="text" class="form-control" id="passwordShowMoveOne" placeholder="Password here"
+                          autofocus required>
+                        <div class="valid-feedback">
+                          Looks good!
+                        </div>
+                        <div class="invalid-feedback">
+                          Fill in this field.
+                        </div>
+                      </div>
+
+                      <label style="cursor: pointer" class="col-3 col-form-label mb-4">
+                        Move
+                      </label>
+                      <div class="row" style="width: 70%; margin: auto;">
+                        <div class="col">
+                          <label>
+                            <input type="radio" name="moveShowMoveOne" value="1">
+                            <div class="rock" title="Rock" data-toggle="tooltip" data-placement="bottom"></div>
+                          </label>
+                        </div>
+                        <div class="col">
+                          <label>
+                            <input type="radio" name="moveShowMoveOne" value="2">
+                            <div class="paper" title="Paper" data-toggle="tooltip" data-placement="bottom"></div>
+                          </label>
+                        </div>
+                        <div class="col">
+                          <label>
+                            <input type="radio" name="moveShowMoveOne" value="3">
+                            <div class="scissors" title="Scissors" data-toggle="tooltip" data-placement="bottom"></div>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+
+                  <div class="text-center mt-3">
+                    <button id="showMoveOne" class="btn btn-info" style="margin: 4px;">
+                      Show Move One
+                    </button>
+                  </div>
+                </div>
+
+                <div class="tab-pane fade" id="nav-claimNoGame" role="tabpanel" aria-labelledby="nav-claimNoGame-tab">
+                  <form class="mt-4" novalidate>
+                    <div class="form-row">
+                      <label style="cursor: pointer" for="hashClaimNoGame" class="col-3 col-form-label mb-4">
+                        Hash
+                      </label>
+                      <div class="col-9 claimNoGameClass">
+                        <input type="text" class="form-control" id="hashClaimNoGame" onkeypress="return hexOnly(event)"
+                          maxlength="66" placeholder="Hash here" pattern="[(A-f),(0-9),(x)]{66}" required>
+                        <div class="valid-feedback">
+                          This is a valid hash!
+                        </div>
+                        <div class="invalid-feedback">
+                          Must be a valid hash!
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+                  <div class="text-center">
+                    <button id="claimNoGame" class="btn btn-warning" style="margin: 4px;">
+                      Claim No Game
+                    </button>
+                  </div>
+                </div>
+
+                <div class="tab-pane fade" id="nav-claimMoveOneNotShown" role="tabpanel"
+                  aria-labelledby="nav-claimMoveOneNotShown-tab">
+                  <form class="mt-4" novalidate>
+                    <div class="form-row">
+                      <label style="cursor: pointer" for="hashClaimMoveOneNotShown" class="col-3 col-form-label mb-4">
+                        Hash
+                      </label>
+                      <div class="col-9 claimMoveOneNotShownClass">
+                        <input type="text" class="form-control" id="hashClaimMoveOneNotShown"
+                          onkeypress="return hexOnly(event)" maxlength="66" placeholder="Hash here"
+                          pattern="[(A-f),(0-9),(x)]{66}" required>
+                        <div class="valid-feedback">
+                          This is a valid hash!
+                        </div>
+                        <div class="invalid-feedback">
+                          Must be a valid hash!
+                        </div>
+                      </div>
+                    </div>
+                  </form>
+                  <div class="text-center">
+                    <button id="claimMoveOneNotShown" class="btn btn-warning" style="margin: 4px;">
+                      Claim Move One Not Shown
+                    </button>
+                  </div>
+                </div>
+
+                <div class="tab-pane fade" id="nav-withdraw" role="tabpanel" aria-labelledby="nav-withdraw-tab">
+                  <div class="text-center mt-4">
+                    <button id="withdraw" class="btn btn-success" style="margin: 4px;">
+                      Withdraw
+                    </button>
+                  </div>
+                </div>
+
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col col-md-4" id="outputScreen">
+        <h5 class=" text-center ribbon4 scene_element scene_element--fadeinright">Current Transaction</h5>
+        <div id="txStatusUp" style="min-height: 26vh;"></div>
+        <h5 class=" text-center ribbon4 scene_element scene_element--fadeinright">Logs</h5>
+        <div>
+          <div>
+            <div class="row">
+              <div class="col">
+                <nav class="nav-fill">
+                  <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                    <a class="nav-item nav-link active" id="nav-logPlayerOneMove-tab" data-toggle="tab"
+                      href="#nav-logPlayerOneMove" role="tab" aria-controls="nav-logPlayerOneMove"
+                      aria-selected="false">Move 1</a>
+                    <a class="nav-item nav-link" id="nav-logPlayerTwoMove-tab" data-toggle="tab"
+                      href="#nav-logPlayerTwoMove" role="tab" aria-controls="nav-logPlayerTwoMove"
+                      aria-selected="false">Move 2</a>
+                    <a class="nav-item nav-link" id="nav-logShowMoveOne-tab" data-toggle="tab"
+                      href="#nav-logShowMoveOne" role="tab" aria-controls="nav-logShowMoveOne"
+                      aria-selected="false">Show Move</a>
+                    <a class="nav-item nav-link" id="nav-logWinner-tab" data-toggle="tab" href="#nav-logWinner"
+                      role="tab" aria-controls="nav-logWinner" aria-selected="false">Winner</a>
+                    <a class="nav-item nav-link" id="nav-logDraw-tab" data-toggle="tab" href="#nav-logDraw" role="tab"
+                      aria-controls="nav-logDraw" aria-selected="false">Draw</a>
+                    <a class="nav-item nav-link" id="nav-logClaimNoGame-tab" data-toggle="tab"
+                      href="#nav-logClaimNoGame" role="tab" aria-controls="nav-logClaimNoGame" aria-selected="false">No
+                      Game</a>
+                    <a class="nav-item nav-link" id="nav-logClaimMoveOneNotShown-tab" data-toggle="tab"
+                      href="#nav-logClaimMoveOneNotShown" role="tab" aria-controls="nav-logClaimMoveOneNotShown"
+                      aria-selected="false">Not Shown</a>
+                    <a class="nav-item nav-link" id="nav-logWithdrawn-tab" data-toggle="tab" href="#nav-logWithdrawn"
+                      role="tab" aria-controls="nav-logWithdrawn" aria-selected="false">Withdrawn</a>
+                  </div>
+                </nav>
+                <div class="tab-content" id="nav-tabContent">
+                  <div class="tab-pane fade show active" id="nav-logPlayerOneMove" role="tabpanel"
+                    aria-labelledby="nav-logPlayerOneMove-tab">
+                    <div id="logPlayerOneMove" class="col">
+                    </div>
+                  </div>
+                  <div class="tab-pane fade" id="nav-logPlayerTwoMove" role="tabpanel"
+                    aria-labelledby="nav-logPlayerTwoMove-tab">
+                    <div id="logPlayerTwoMove" class="col">
+                    </div>
+                  </div>
+                  <div class="tab-pane fade" id="nav-logShowMoveOne" role="tabpanel"
+                    aria-labelledby="nav-logShowMoveOne-tab">
+                    <div id="logShowMoveOne" class="col">
+                    </div>
+                  </div>
+                  <div class="tab-pane fade" id="nav-logWinner" role="tabpanel" aria-labelledby="nav-logWinner-tab">
+                    <div id="logWinner" class="col">
+                    </div>
+                  </div>
+                  <div class="tab-pane fade" id="nav-logDraw" role="tabpanel" aria-labelledby="nav-logDraw-tab">
+                    <div id="logDraw" class="col">
+                    </div>
+                  </div>
+                  <div class="tab-pane fade" id="nav-logClaimNoGame" role="tabpanel"
+                    aria-labelledby="nav-logClaimNoGame-tab">
+                    <div id="logClaimNoGame" class="col">
+                    </div>
+                  </div>
+                  <div class="tab-pane fade" id="nav-logClaimMoveOneNotShown" role="tabpanel"
+                    aria-labelledby="nav-logClaimMoveOneNotShown-tab">
+                    <div id="logClaimMoveOneNotShown" class="col">
+                    </div>
+                  </div>
+                  <div class="tab-pane fade" id="nav-logWithdrawn" role="tabpanel"
+                    aria-labelledby="nav-logWithdrawn-tab">
+                    <div id="logWithdrawn" class="col">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="modalBienvenida" tabindex="-1" role="dialog" aria-labelledby="modalBienvenidaTitle"
+      aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+          <div class="modal-content container-fluid justify-content-center">
+          <div class="modal-header text-center">
+            <h5 class="modal-title" id="modalBienvenidaTitle">Welcome</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div id="modalBodyArribaBienvenida"></div>
+          <div class="modal-body row container-fluid justify-content-around" id="modal-body-bienvenida" style="overflow:auto; margin: auto">
+
+            <div class="col-11">
+                <div class="mt-1">
+                    <a href="https://academy.b9lab.com" target="_blank">
+                      <div id="b9lab-logo" class="brand"></div>
+                    </a>
+                  </div>
+              <h4 class="text-center mt-2">RockPaperScissors application for ethereum - Project 3 - Ethereum Developer Course
+                - B9lab Academy</h4>
+
+              <p ALIGN="justify">
+                <h5>What:</h5>
+                <ul>
+                  <li>
+                    Alice and Bob play the classic rock paper scissors game.
+                  </li>
+                  <li>
+                    To enrol, each player needs to deposit the right Ether amount, possibly zero.
+                  </li>
+                  <li>
+                    To play, each player submits their unique move.
+                  </li>
+                  <li>
+                    The contract decides and rewards the winner with all Ether wagered.
+                  </li>
+                </ul>
+                <br>
+                <h5 class="text-center">This application works through the Blockchain protocol provided by Ethereum Smart Contracts.</h5>
+                <br>
+                <div class="text-center">
+                  <a href="https://ethereum.org" target="_blank">
+                    <div id="ethereum" class="brand"></div>
+                  </a>
+                </div>
+                <br>
+                <h5 class="text-center">
+                  Technologies used to build this application</h5>
+              </p>
+            </div>
+            <div class="w-100"></div>
+
+
+            <div>
+              <a href="https://trufflesuite.com" target="_blank">
+                <div id="truffle" class="brand"></div>
+              </a>
+            </div>
+            <div>
+              <a href="https://getbootstrap.com/" target="_blank">
+                <div id="bootstrap" class="brand"></div>
+              </a>
+            </div>
+            <div>
+              <a href="https://jquery.com/" target="_blank">
+                <div id="jquery" class="brand"></div>
+              </a>
+            </div>
+            <div>
+                <a href="https://webpack.js.org" target="_blank">
+                  <div id="webpack" class="brand"></div>
+                </a>
+              </div>
+              
+              
+              <div class="w-100"><br></div>
+              <div style="font-size:12px">Hand icons made by <a href="https://www.flaticon.com/authors/vitaly-gorbachev" title="Vitaly Gorbachev">Vitaly Gorbachev</a> from <a href="https://www.flaticon.com/"             title="Flaticon">www.flaticon.com</a></div>
+              <div class="w-100"></div>
+              <div style="font-size:12px">Application repo <a href="https://github.com/santanaruben/rockPaperScissors">Rock Paper Scissors</a> - Rubén Santana - 2019</div>
+              
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cerrarModal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!--modal-->
+
+    <script src="index.js"></script>
+
+</body>
+
+</html>
